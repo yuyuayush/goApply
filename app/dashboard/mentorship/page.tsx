@@ -127,7 +127,7 @@ export default function MentorshipPage() {
 
     const fetchMentors = async () => {
         try {
-            const res = await fetch("http://localhost:3000/api/mentorship", {
+            const res = await fetch("http://localhost:8080/api/mentorship", {
                 headers: {
                     "Authorization": `Bearer ${token}`
                 }
@@ -339,7 +339,7 @@ export default function MentorshipPage() {
                                     Message
                                   </Button>
                                   <Button onClick={async () => {
-                                      await fetch("http://localhost:3000/api/mentorship/request", {
+                                      await fetch("http://localhost:8080/api/mentorship/request", {
                                           method: "POST",
                                           headers: {
                                               "Content-Type": "application/json",

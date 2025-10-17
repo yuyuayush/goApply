@@ -36,7 +36,7 @@ export default function ProfilePage() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [activeTab, setActiveTab] = useState("personal")
   const [isEditing, setIsEditing] = useState(false)
-  const { user, profile, updateProfile } = useAuth()
+  const { user, profile, updateProfile } = useAuth();
 
   // Keep track of original data for cancel functionality
   const [originalData, setOriginalData] = useState({})

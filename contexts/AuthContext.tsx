@@ -29,7 +29,9 @@ export function AuthProvider({children}: { children: ReactNode }) {
         // Check for existing session on mount
         const checkSession = async () => {
             try {
+                // Prevent re-fetch if profile is already loaded
                 if (profile) return;
+
                 const token = localStorage.getItem("token");
                 if (!token) {
                     console.warn("⚠️ No token found in localStorage");
@@ -37,44 +39,62 @@ export function AuthProvider({children}: { children: ReactNode }) {
                     return;
                 }
 
-                // ✅ Await the axios call and handle the response
-                const res = await axios.get("http://localhost:3000/api/auth/profile", {
+                // Fetch user session from backend
+                const res = await axios.get("http://localhost:8080/api/auth/profile", {
                     headers: {
                         Authorization: `Bearer ${token}`,
                     },
                 });
 
-                // ✅ Update user and profile from backend first
-                if (res.data?.user) setUser(res.data.user);
-                if (res.data?.profile) setProfile(res.data.profile);
+                // Update user and profile if received
+                const fetchedUser = res.data?.data || null;
+                const fetchedProfile = res.data?.data || null;
 
-                // ✅ Also update localStorage to keep them in sync
-                if (res.data?.user) localStorage.setItem("user", JSON.stringify(res.data.user));
-                if (res.data?.profile) localStorage.setItem("profile", JSON.stringify(res.data.profile));
+                if (fetchedUser) {
+                    setUser(fetchedUser);
+                    localStorage.setItem("user", JSON.stringify(fetchedUser));
+                }
 
-                // ✅ Fallback: load from localStorage if API didn’t return anything
-                const savedUser = localStorage.getItem("user");
-                const savedProfile = localStorage.getItem("profile");
+                if (fetchedProfile) {
+                    setProfile(fetchedProfile);
+                    localStorage.setItem("profile", JSON.stringify(fetchedProfile));
+                }
 
-                if (savedUser && !res.data?.user) setUser(JSON.parse(savedUser));
-                if (savedProfile && !res.data?.profile) setProfile(JSON.parse(savedProfile));
+                // If backend didn’t return anything, fallback to localStorage
+                if (!fetchedUser) {
+                    const savedUser = localStorage.getItem("user");
+                    if (savedUser) setUser(JSON.parse(savedUser));
+                }
+
+                if (!fetchedProfile) {
+                    const savedProfile = localStorage.getItem("profile");
+                    if (savedProfile) setProfile(JSON.parse(savedProfile));
+                }
 
             } catch (error) {
                 console.error("❌ Error checking session:", error);
 
-                // ✅ Handle unauthorized user (token invalid or expired)
-                if (axios.isAxiosError(error) && error.response?.status === 401) {
-                    console.warn("⚠️ Session expired or invalid token. Clearing user data...");
-                    localStorage.removeItem("token");
-                    localStorage.removeItem("user");
-                    localStorage.removeItem("profile");
-                    setUser(null);
-                    setProfile(null);
+                // Handle expired/invalid tokens
+                if (axios.isAxiosError(error)) {
+                    if (error.response?.status === 401) {
+                        console.warn("⚠️ Session expired or invalid token. Clearing user data...");
+                    } else {
+                        console.warn("⚠️ Unexpected error while validating session.");
+                    }
                 }
+
+                // Clear corrupted or invalid session data
+                localStorage.removeItem("token");
+                localStorage.removeItem("user");
+                localStorage.removeItem("profile");
+                setUser(null);
+                setProfile(null);
+
             } finally {
                 setIsLoading(false);
             }
         };
+
 
         checkSession()
     }, [])
@@ -83,7 +103,7 @@ export function AuthProvider({children}: { children: ReactNode }) {
         setIsLoading(true);
         try {
             // 🔹 Call backend login API
-            const res = await fetch(`http://localhost:3000/api/auth/login`, {
+            const res = await fetch(`http://localhost:8080/api/auth/login`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -91,42 +111,36 @@ export function AuthProvider({children}: { children: ReactNode }) {
                 body: JSON.stringify({email, password}),
             });
 
+            // 🔹 Parse response JSON once
+            const data = await res.json();
+
             // 🔹 Handle backend errors
             if (!res.ok) {
-                const errorData = await res.json();
-                throw new Error(errorData.error || "Login failed");
+                throw new Error(data.error || data.message || "Login failed");
             }
 
-            const data = await res.json();
-            const {user, token} = data;
+            // ✅ Correctly extract nested data
+            const {token, user} = data.data;
 
             // 🔹 Save user and token locally
-            localStorage.setItem("user", JSON.stringify(user));
             localStorage.setItem("token", token);
+            localStorage.setItem("user", JSON.stringify(user));
+            localStorage.setItem(`profile_${user._id}`, JSON.stringify(user));
+
             setUser(user);
+            setProfile(user);
 
-            // (Optional) Fetch user profile from backend (if available)
-            const profileRes = await fetch(
-                `http://localhost:3000/api/auth/profile`,
-                {
-                    method: "GET",
-                    headers: {
-                        "Authorization": `Bearer ${token}`,
-                    },
-                }
-            );
+            console.log("✅ Login successful", user);
 
-            if (profileRes.ok) {
-                const profileData = await profileRes.json();
-                setProfile(profileData.profile);
-                localStorage.setItem(`profile_${user._id}`, JSON.stringify(profileData.profile));
-            }
-
-            console.log("✅ Login successful");
             return user;
-        } catch (error) {
-            console.error("Sign in error:", error);
-            throw error;
+        } catch (err: unknown) {
+            if (err instanceof Error) {
+                console.error("Sign in error:", err.message);
+                throw new Error(err.message);
+            } else {
+                console.error("Unknown sign in error:", err);
+                throw new Error("An unexpected error occurred");
+            }
         } finally {
             setIsLoading(false);
         }
@@ -136,12 +150,12 @@ export function AuthProvider({children}: { children: ReactNode }) {
         email: string;
         password: string;
         firstName: string;
-        lastName: string
+        lastName: string;
     }) => {
         setIsLoading(true);
         try {
-            // Send signup request to backend
-            const res = await fetch(`http://localhost:3000/api/auth/register`, {
+            // 🔹 Send signup request to backend
+            const res = await fetch(`http://localhost:8080/api/auth/register`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -149,34 +163,43 @@ export function AuthProvider({children}: { children: ReactNode }) {
                 body: JSON.stringify(userData),
             });
 
+            // 🔹 Parse response once
+            const data = await res.json();
+
+            // 🔹 Handle backend errors
             if (!res.ok) {
-                const errorData = await res.json();
-                throw new Error(errorData.error || "Signup failed");
+                throw new Error(data.error || data.message || "Signup failed");
             }
 
-            const data = await res.json();
-            const {user, token} = data;
+            // ✅ Extract token + user properly
+            const {token, user} = data.data;
 
-            // ✅ Store user + token locally
+            // 🔹 Store user + token locally
             localStorage.setItem("token", token);
             localStorage.setItem("user", JSON.stringify(user));
             setUser(user);
 
-            // (Optional) Keep track of all registered users — still local for demo/testing
+            // (Optional) track registered users locally
             const existingUsers = localStorage.getItem("registeredUsers");
             const users = existingUsers ? JSON.parse(existingUsers) : [];
             users.push(user);
             localStorage.setItem("registeredUsers", JSON.stringify(users));
 
-            console.log("Signup successful ✅");
+            console.log("✅ Signup successful:", user);
             return user;
-        } catch (error) {
-            console.error("Signup error:", error);
-            throw error;
+        } catch (err: unknown) {
+            if (err instanceof Error) {
+                console.error("Signup error:", err.message);
+                throw new Error(err.message);
+            } else {
+                console.error("Unknown signup error:", err);
+                throw new Error("An unexpected error occurred");
+            }
         } finally {
             setIsLoading(false);
         }
     };
+
 
     const signOut = () => {
         setUser(null)
@@ -212,7 +235,7 @@ export function AuthProvider({children}: { children: ReactNode }) {
             const headers = token ? {Authorization: `Bearer ${token}`} : {};
 
             // Update profile in DB
-            await axios.put(`/api/auth/profile`, updatedProfile, {headers});
+            await axios.put(`http://localhost:8080/api/auth/profile`, updatedProfile, {headers});
 
             // // Update basic user info if necessary
             // await axios.patch(`/api/user/${user.id}`, {

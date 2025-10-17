@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import {useEffect, useState} from "react"
 import { motion } from "framer-motion"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -23,109 +23,33 @@ import {
 import DashboardSidebar from "@/components/dashboard/DashboardSidebar"
 import DashboardHeader from "@/components/dashboard/DashboardHeader"
 import ProtectedRoute from "@/components/auth/ProtectedRoute"
+import axios from 'axios'
 
-const documents = [
-  {
-    id: 1,
-    name: "Academic Transcripts - Bachelor's Degree",
-    type: "Transcript",
-    format: "PDF",
-    size: "2.4 MB",
-    uploadDate: "Nov 10, 2024",
-    status: "Verified",
-    statusColor: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300",
-    universities: ["University of Toronto", "ETH Zurich"],
-    required: true,
-    expiryDate: null
-  },
-  {
-    id: 2,
-    name: "Statement of Purpose - Computer Science",
-    type: "SOP",
-    format: "PDF",
-    size: "1.8 MB",
-    uploadDate: "Nov 12, 2024",
-    status: "Pending Review",
-    statusColor: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300",
-    universities: ["University of Toronto", "University of Melbourne"],
-    required: true,
-    expiryDate: null
-  },
-  {
-    id: 3,
-    name: "IELTS Academic Test Report",
-    type: "English Test",
-    format: "PDF",
-    size: "850 KB",
-    uploadDate: "Oct 15, 2024",
-    status: "Verified",
-    statusColor: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300",
-    universities: ["University of Melbourne"],
-    required: true,
-    expiryDate: "Oct 15, 2026"
-  },
-  {
-    id: 4,
-    name: "Letter of Recommendation - Prof. Smith",
-    type: "LOR",
-    format: "PDF",
-    size: "1.2 MB",
-    uploadDate: "Nov 5, 2024",
-    status: "Verified",
-    statusColor: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300",
-    universities: ["University of Toronto", "ETH Zurich", "Imperial College London"],
-    required: true,
-    expiryDate: null
-  },
-  {
-    id: 5,
-    name: "Updated Resume - 2024",
-    type: "Resume",
-    format: "PDF",
-    size: "640 KB",
-    uploadDate: "Nov 14, 2024",
-    status: "Verified",
-    statusColor: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300",
-    universities: ["University of Toronto", "University of Melbourne", "ETH Zurich", "Imperial College London"],
-    required: true,
-    expiryDate: null
-  },
-  {
-    id: 6,
-    name: "TOEFL iBT Score Report",
-    type: "English Test",
-    format: "PDF",
-    size: "920 KB",
-    uploadDate: "Sep 20, 2024",
-    status: "Verified",
-    statusColor: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300",
-    universities: ["ETH Zurich"],
-    required: true,
-    expiryDate: "Sep 20, 2026"
-  },
-  {
-    id: 7,
-    name: "Portfolio - Software Projects",
-    type: "Portfolio",
-    format: "PDF",
-    size: "15.2 MB",
-    uploadDate: "Nov 8, 2024",
-    status: "Draft",
-    statusColor: "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300",
-    universities: [],
-    required: false,
-    expiryDate: null
-  }
-]
 
 const requiredDocuments = [
-  { name: "Academic Transcripts", description: "Official transcripts from all attended institutions", status: "completed" },
-  { name: "Statement of Purpose", description: "Personal statement explaining your academic goals", status: "completed" },
-  { name: "Letters of Recommendation", description: "2-3 letters from academic or professional references", status: "completed" },
-  { name: "Resume/CV", description: "Updated resume highlighting relevant experience", status: "completed" },
-  { name: "English Proficiency Test", description: "IELTS, TOEFL, or other accepted English tests", status: "completed" },
-  { name: "Passport Copy", description: "Valid passport for international applications", status: "missing" },
-  { name: "Research Proposal", description: "For research-based programs (if applicable)", status: "optional" }
+    {
+        name: "Academic Transcripts",
+        description: "Official transcripts from all attended institutions",
+        status: "completed"
+    },
+    {
+        name: "Statement of Purpose",
+        description: "Personal statement explaining your academic goals",
+        status: "completed"
+    },
+    {
+        name: "Letters of Recommendation",
+        description: "2-3 letters from academic or professional references",
+        status: "completed"
+    },
+    {name: "Resume/CV", description: "Updated resume highlighting relevant experience", status: "completed"},
+    {
+        name: "English Proficiency Test",
+        description: "IELTS, TOEFL, or other accepted English tests",
+        status: "completed"
+    },
+    {name: "Passport Copy", description: "Valid passport for international applications", status: "missing"},
+    {name: "Research Proposal", description: "For research-based programs (if applicable)", status: "optional"}
 ]
 
 const getFileIcon = (format: string) => {
@@ -158,6 +82,7 @@ const getStatusIcon = (status: string) => {
 }
 
 export default function DocumentsPage() {
+    const [documents, setDocuments] = useState();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [activeTab, setActiveTab] = useState("all")
   const [searchTerm, setSearchTerm] = useState("")
@@ -178,6 +103,16 @@ export default function DocumentsPage() {
 
     return filtered
   }
+
+    useEffect(() => {
+        axios.get("http://localhost:8080/api/dashboard/documents",{
+            headers:{
+                Authorization: `Bearer ${localStorage.getItem("token")}`,
+            }
+        })
+            .then(res => setDocuments(res.data))
+            .catch(err => console.error(err));
+    }, []);
 
   return (
     <ProtectedRoute>
@@ -297,7 +232,7 @@ export default function DocumentsPage() {
                       </TabsList>
 
                       <TabsContent value={activeTab} className="space-y-4 mt-6">
-                        {filterDocuments(activeTab).map((document, index) => (
+                        {filterDocuments(activeTab)?.map((document, index) => (
                           <motion.div
                             key={document.id}
                             initial={{ opacity: 0, x: -20 }}

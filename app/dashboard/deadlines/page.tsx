@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import {useEffect, useState} from "react"
 import { motion } from "framer-motion"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -21,99 +21,100 @@ import {
 import DashboardSidebar from "@/components/dashboard/DashboardSidebar"
 import DashboardHeader from "@/components/dashboard/DashboardHeader"
 import ProtectedRoute from "@/components/auth/ProtectedRoute"
+import axios from 'axios'
 
-const deadlines = [
-  {
-    id: 1,
-    title: "University of Toronto - Application Deadline",
-    university: "University of Toronto",
-    program: "Master of Science in Computer Science",
-    country: "Canada",
-    date: "2024-12-15",
-    type: "Application",
-    priority: "high",
-    status: "upcoming",
-    daysLeft: 10,
-    requirements: ["Transcripts", "SOP", "LORs", "Resume", "English Test"],
-    completed: ["Transcripts", "SOP", "LORs", "Resume"],
-    notes: "Final deadline - no extensions available"
-  },
-  {
-    id: 2,
-    title: "Imperial College London - Document Submission",
-    university: "Imperial College London",
-    program: "MSc Artificial Intelligence",
-    country: "United Kingdom",
-    date: "2024-12-20",
-    type: "Documents",
-    priority: "medium",
-    status: "upcoming",
-    daysLeft: 15,
-    requirements: ["LORs", "Resume", "English Test"],
-    completed: [],
-    notes: "Submit remaining documents"
-  },
-  {
-    id: 3,
-    title: "ETH Zurich - Scholarship Application",
-    university: "ETH Zurich",
-    program: "Master in Computer Science",
-    country: "Switzerland",
-    date: "2024-12-31",
-    type: "Scholarship",
-    priority: "high",
-    status: "upcoming",
-    daysLeft: 26,
-    requirements: ["Essay", "Financial Documents", "Research Proposal"],
-    completed: ["Essay"],
-    notes: "Merit-based scholarship deadline"
-  },
-  {
-    id: 4,
-    title: "University of Melbourne - Interview Confirmation",
-    university: "University of Melbourne",
-    program: "Master of Data Science",
-    country: "Australia",
-    date: "2024-12-08",
-    type: "Interview",
-    priority: "high",
-    status: "upcoming",
-    daysLeft: 3,
-    requirements: ["Confirm availability", "Prepare presentation"],
-    completed: ["Confirm availability"],
-    notes: "Video interview via Zoom"
-  },
-  {
-    id: 5,
-    title: "MIT - Early Decision Deadline",
-    university: "Massachusetts Institute of Technology",
-    program: "Master of Engineering",
-    country: "United States",
-    date: "2024-11-01",
-    type: "Application",
-    priority: "high",
-    status: "overdue",
-    daysLeft: -34,
-    requirements: ["Complete Application"],
-    completed: [],
-    notes: "Missed deadline - consider regular decision"
-  },
-  {
-    id: 6,
-    title: "University of Oxford - Reference Letters",
-    university: "University of Oxford",
-    program: "MSc Computer Science",
-    country: "United Kingdom",
-    date: "2025-01-15",
-    type: "Documents",
-    priority: "medium",
-    status: "upcoming",
-    daysLeft: 41,
-    requirements: ["3 Academic References"],
-    completed: ["2 Academic References"],
-    notes: "Waiting for final reference"
-  }
-]
+// const deadlines = [
+//   {
+//     id: 1,
+//     title: "University of Toronto - Application Deadline",
+//     university: "University of Toronto",
+//     program: "Master of Science in Computer Science",
+//     country: "Canada",
+//     date: "2024-12-15",
+//     type: "Application",
+//     priority: "high",
+//     status: "upcoming",
+//     daysLeft: 10,
+//     requirements: ["Transcripts", "SOP", "LORs", "Resume", "English Test"],
+//     completed: ["Transcripts", "SOP", "LORs", "Resume"],
+//     notes: "Final deadline - no extensions available"
+//   },
+//   {
+//     id: 2,
+//     title: "Imperial College London - Document Submission",
+//     university: "Imperial College London",
+//     program: "MSc Artificial Intelligence",
+//     country: "United Kingdom",
+//     date: "2024-12-20",
+//     type: "Documents",
+//     priority: "medium",
+//     status: "upcoming",
+//     daysLeft: 15,
+//     requirements: ["LORs", "Resume", "English Test"],
+//     completed: [],
+//     notes: "Submit remaining documents"
+//   },
+//   {
+//     id: 3,
+//     title: "ETH Zurich - Scholarship Application",
+//     university: "ETH Zurich",
+//     program: "Master in Computer Science",
+//     country: "Switzerland",
+//     date: "2024-12-31",
+//     type: "Scholarship",
+//     priority: "high",
+//     status: "upcoming",
+//     daysLeft: 26,
+//     requirements: ["Essay", "Financial Documents", "Research Proposal"],
+//     completed: ["Essay"],
+//     notes: "Merit-based scholarship deadline"
+//   },
+//   {
+//     id: 4,
+//     title: "University of Melbourne - Interview Confirmation",
+//     university: "University of Melbourne",
+//     program: "Master of Data Science",
+//     country: "Australia",
+//     date: "2024-12-08",
+//     type: "Interview",
+//     priority: "high",
+//     status: "upcoming",
+//     daysLeft: 3,
+//     requirements: ["Confirm availability", "Prepare presentation"],
+//     completed: ["Confirm availability"],
+//     notes: "Video interview via Zoom"
+//   },
+//   {
+//     id: 5,
+//     title: "MIT - Early Decision Deadline",
+//     university: "Massachusetts Institute of Technology",
+//     program: "Master of Engineering",
+//     country: "United States",
+//     date: "2024-11-01",
+//     type: "Application",
+//     priority: "high",
+//     status: "overdue",
+//     daysLeft: -34,
+//     requirements: ["Complete Application"],
+//     completed: [],
+//     notes: "Missed deadline - consider regular decision"
+//   },
+//   {
+//     id: 6,
+//     title: "University of Oxford - Reference Letters",
+//     university: "University of Oxford",
+//     program: "MSc Computer Science",
+//     country: "United Kingdom",
+//     date: "2025-01-15",
+//     type: "Documents",
+//     priority: "medium",
+//     status: "upcoming",
+//     daysLeft: 41,
+//     requirements: ["3 Academic References"],
+//     completed: ["2 Academic References"],
+//     notes: "Waiting for final reference"
+//   }
+// ]
 
 const getPriorityColor = (priority: string) => {
   switch (priority) {
@@ -152,6 +153,7 @@ export default function DeadlinesPage() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [activeTab, setActiveTab] = useState("upcoming")
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date())
+    const [deadlines, setDeadlines] = useState<[]>([]);
 
   const filterDeadlines = (status: string) => {
     if (status === "all") return deadlines
@@ -161,10 +163,20 @@ export default function DeadlinesPage() {
     return deadlines.filter(d => d.status === status)
   }
 
-  const upcomingCount = deadlines.filter(d => d.status === "upcoming").length
-  const overdueCount = deadlines.filter(d => d.daysLeft < 0).length
-  const urgentCount = deadlines.filter(d => d.daysLeft >= 0 && d.daysLeft <= 7).length
+  const upcomingCount = deadlines?.filter(d => d.status === "upcoming").length
+  const overdueCount = deadlines?.filter(d => d.daysLeft < 0).length
+  const urgentCount = deadlines?.filter(d => d.daysLeft >= 0 && d.daysLeft <= 7).length
 
+    useEffect(() => {
+        axios.get("http://localhost:8080/api/deadlines",{
+            headers:{
+                Authorization: `Bearer ${localStorage.getItem("token")}`,
+            }
+        })
+            .then(res => setDeadlines(res.data.data))
+            .catch(err => console.error(err));
+    }, []);
+  console.log(deadlines)
   return (
     <ProtectedRoute>
       <div className="flex h-screen">

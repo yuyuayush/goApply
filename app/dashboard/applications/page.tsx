@@ -102,6 +102,11 @@ const getStatusIcon = (status: string) => {
 }
 
 export default function ApplicationsPage() {
+
+    const [applications, setApplications] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
     const [activeTab, setActiveTab] = useState("all")
 
@@ -110,36 +115,42 @@ export default function ApplicationsPage() {
         return applications.filter(app => app.status.toLowerCase().includes(status))
     }
 
-    // const fetchDashboardApplication = async () => {
-    //     try {
-    //         setLoading(true);
-    //
-    //         const res = await axios.get("/api/dashboard/applications/1", {
-    //             headers: {
-    //                 Authorization: `Bearer ${localStorage.getItem("token")}`,
-    //             },
-    //         });
-    //
-    //     } catch (err) {
-    //         console.error("Error fetching dashboard overview:", err);
-    //     } finally {
-    //         setLoading(false);
-    //     }
-    // };
+    const fetchDashboardApplication = async () => {
+        try {
+            setLoading(true);
+
+            const res = await axios.get("http://localhost:8080/api/dashboard/applications", {
+                headers: {
+                    Authorization: `Bearer ${localStorage.getItem("token")}`,
+                },
+            });
+            const {data} = res;
+            if (data.success) {
+                setApplications(data.data); // assuming backend returns { success: true, data: [...] }
+            } else {
+                setError("Failed to load applications");
+            }
+
+        } catch (err) {
+            console.error("Error fetching dashboard overview:", err);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const deleteApplication = async (id: string) => {
         try {
             await axios.delete(`/api/dashboard/applications/${id}`, {
-                headers: { Authorization: `Bearer ${token}` }
+                headers: {Authorization: `Bearer ${token}`}
             })
             setApplications(applications.filter(app => app.id !== id))
         } catch (err) {
             console.error("Error deleting application:", err)
         }
     }
-
+    //
     useEffect(() => {
-        // fetchDashboardApplication();
+        fetchDashboardApplication();
     }, []);
 
     return (
@@ -361,7 +372,8 @@ export default function ApplicationsPage() {
                                                                     <Edit className="w-4 h-4 mr-2"/>
                                                                     Edit
                                                                 </Button>
-                                                                <Button onClick={()=>deleteApplication(1)} variant="outline" size="sm"
+                                                                <Button onClick={() => deleteApplication(1)}
+                                                                        variant="outline" size="sm"
                                                                         className="bg-background/50 backdrop-blur border-border/50 text-destructive hover:text-destructive">
                                                                     <Trash2 className="w-4 h-4 mr-2"/>
                                                                     Delete

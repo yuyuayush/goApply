@@ -48,8 +48,8 @@ export default function DashboardHeader() {
             setSearchLoading(true)
             try {
                 const [uniRes, progRes] = await Promise.all([
-                    fetch(`http://localhost:3000/api/search/universities?q=${encodeURIComponent(searchQuery)}`).then(r => r.json()),
-                    fetch(`http://localhost:3000/api/search/programs?q=${encodeURIComponent(searchQuery)}`).then(r => r.json()),
+                    fetch(`http://localhost:8080/api/search/universities?q=${encodeURIComponent(searchQuery)}`).then(r => r.json()),
+                    fetch(`http://localhost:8080/api/search/programs?q=${encodeURIComponent(searchQuery)}`).then(r => r.json()),
                 ])
                 setSearchResults({ universities: uniRes.universities || [], programs: progRes.programs || [] })
                 setShowDropdown(true)
